@@ -1,0 +1,6 @@
+<?php
+	$gaSql['user']       = "usuariobbdd";
+	$gaSql['password']   = "contraseñabbdd";
+	$gaSql['db']         = "basededatos";
+	$gaSql['server']     = "localhost";
+?>

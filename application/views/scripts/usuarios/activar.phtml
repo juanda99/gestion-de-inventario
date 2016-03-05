@@ -1,0 +1,82 @@
+<script type="text/javascript">
+    $(document).ready(function(){
+        /*******************************************************************/
+        /* Validación formulario                                           */
+        /*******************************************************************/
+        var formvalidator = $("#formulario").validate({
+            /*bug hacía el validate con la fecha "antigua", antes de la selección*/
+            
+            rules:{
+                usuario: { 
+                    required: true,
+                    email: true
+                },
+                password: {
+                    required: true,
+                    minlength: 4
+                },
+                password2:{
+                    equalTo: "#password"
+                }
+            },
+            messages: {
+                usuario: {
+                    required: "Debes rellenar el usuario",
+                    email: "El usuario debe ser una dirección de email válida"
+                }
+            }
+        });
+        $("#entrar").click(function(e){
+            $("html").css('cursor','wait');
+            resultado = $("#formulario").validate().form();
+            if (!resultado) {
+                $("html").css('cursor','auto');
+                e.preventDefault();
+            }
+        });
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+
+    <div class="row-fluid">
+        <div class="login-box">
+
+            <h2 style="margin-top:40px;">Activación de la cuenta de usuario <br/><span style="color:red;" ><?php echo $this->mensaje; ?></span></h2>
+            <form id="formulario" class="form-horizontal" action="" method="post">
+                <fieldset>
+
+                    <div class="input-prepend" title="Usuario">
+                        <span class="add-on"><i class="halflings-icon user"></i></span>
+                        <input class="input-large span10" name="usuario" id="usuario" type="text" placeholder="escribe tu email" />
+                    </div>
+                    <div class="clearfix"></div>
+                </fieldset>
+
+                <fieldset>
+                    <div class="input-prepend" title="Contraseña">
+                        <span class="add-on"><i class="halflings-icon lock"></i></span>
+                        <input class="input-large span10" name="password" id="password" type="password" placeholder="escribe la contraseña que deseas"/>
+                    </div>
+                    <div class="clearfix"></div>
+                </fieldset>
+
+                <fieldset>
+                    <div class="input-prepend" title="Escribe de nuevo la contraseña">
+                        <span class="add-on"><i class="halflings-icon lock"></i></span>
+                        <input class="input-large span10" name="password2" id="password2" type="password" placeholder="repite la contraseña"/>
+                        <input class="input-large span10" name="key" id="key" style="display:none;" value="<?php echo $this->key;?>"/>
+                        <input class="input-large span10" name="id" id="id" style="display:none;" value="<?php echo $this->id; ?>"/>
+                    </div>
+                    <div class="clearfix"></div>
+                </fieldset>
+
+                <div class="button-login">	
+                    <button id="entrar" type="submit" class="btn btn-primary">Entrar</button>
+                </div>
+                <div class="clearfix"></div>
+            </form>
+            <hr>
+        </div><!--/span-->
+    </div><!--/row-->
+
+</div><!--/fluid-row-->

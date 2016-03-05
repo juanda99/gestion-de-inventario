@@ -1,0 +1,354 @@
+<script type="text/javascript">
+    var id_departamento;
+    //var id_aula;
+    $(document).ready(function() {
+
+
+        /*******************************************************************/
+        /* Validación formulario                                           */
+        /*******************************************************************/
+        var formvalidator = $("#formulario").validate({
+            /*bug hacía el validate con la fecha "antigua", antes de la selección*/
+
+            rules: {
+                causa: {
+                    required: true
+                },
+                fecha_incidencia: {
+                    required: true
+                },
+                prioridad: {
+                    required: true
+                },
+                id_usuario: {
+                    required: true
+                },
+                aulas_id_aula: {
+                    required: true
+                }
+            },
+            messages: {
+                causa: {
+                    required: "Debes rellenar la causa de la incidencia"
+                },
+                aulas_id_aula: {
+                    required: "Debes rellenar el aula donde se ha producido la incidencia"
+                }
+            }
+        });
+
+        /*******************************************************************/
+        /* EVENTOS DE LA PÁGINA                                            */
+        /*******************************************************************/
+        $.extend($.gritter.options, {
+            /*class_name: 'gritter-light',*/
+            position: 'bottom-right', // possibilities: bottom-left, bottom-right, top-left, top-right
+            fade_in_speed: 100, // how fast notifications fade in (string or int)
+            fade_out_speed: 100, // how fast the notices fade out
+            time: 3000 // hang on the screen for...
+        });
+        $("#cancelar").click(function() {
+            formulario.reset();
+            $("#garantia").html("");
+            $("#formulario").css("display", "none");
+            $("#infoinventario").html("Selecciona primero el equipo desde el Inventario.");
+        });
+
+
+        $("#guardar").click(function(e) {
+            e.preventDefault();
+            $("html").css('cursor', 'wait');
+            resultado = $("#formulario").validate().form();
+            if (!resultado) {
+                $("html").css('cursor', 'auto');
+                return;
+            }
+            var datos = $("#formulario").serialize();
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/incidenciasfungibles/guardar/'); ?>",
+                async: false,
+                // you can use an object here
+                data: datos,
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al guardar el registro!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha guardado la Incidencia',
+                        image: '/img/block.png'
+                    });
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la inserción en la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else
+                    {
+                        var imagen = '/img/ok.png';
+                        var texto = "Se ha añadido la Incidencia";
+                        $("#infoinventario").html("Selecciona primero el equipo desde el Inventario.");
+                        formulario.reset();
+                        $("#garantia").html("");
+                        $("#formulario").css("display", "none");
+                        window.location.href = '<?php echo $this->baseUrl('/incidenciasfungibles/index/insertada/ok'); ?>';
+                    }
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Alta Incidencia ',
+                        // (string | mandatory) the text inside the notification
+                        text: texto,
+                        image: imagen
+
+                    });
+                },
+                complete: {
+                }
+            });
+        });
+        $('#fecha_incidencia')
+                .datepicker({
+                    format: 'dd-mm-yyyy',
+                    weekStart: 1,
+                    language: "es",
+                    todayHighlight: true,
+                    autoclose: true
+                });
+        $('#responsable').focus(function() {
+            if (!$("#responsable").val()) {
+                $.gritter.add({
+                    // (string | mandatory) the heading of the notification
+                    title: 'Responsables del aula',
+                    // (string | mandatory) the text inside the notification
+                    text: 'Falta configurar los responsables del aula ',
+                    image: '/img/block.png'
+                });
+            }
+        });
+
+        /*Controlamos los usuarios a los que se asignan los mantenimientos*/
+        $("#aulas_id_aula").change(function() {
+            var id_aula = $("#aulas_id_aula").val();
+            $("#responsable").find('option').remove().end();
+            /*ponemos como responsable al jefe de departamento*/
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/aulas/getresponsables/'); ?>",
+                async: false,
+                // you can use an object here
+                data: {'id_aula': id_aula},
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    if (xhr.status === 401) {
+                        location.href = "<?php echo $this->baseUrl('/usuarios/login/'); ?>";
+                    }
+                    alert(xhr.status);
+                    alert(status);
+                    alert(error);
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Responsables del aula',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se han podido obtener los responsables del aula ',
+                        image: '/img/block.png'
+                    });
+
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la consulta a la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else {
+                        /*rellenamos el combo con los profesores del departamento:*/
+                        var datos = false;
+                        $.each(data, function(val, text) {
+                            $("#responsable").append(
+                                    $('<option></option>').val(val).html(text)
+                                    );
+                            datos = true;
+                        });
+                        /* if (!datos) {
+                         
+                         $.gritter.add({
+                         // (string | mandatory) the heading of the notification
+                         title: 'Responsables del aula',
+                         // (string | mandatory) the text inside the notification
+                         text: 'Falta configurar los reponsables del aula',
+                         image: '/img/block.png'
+                         });
+                         
+                         
+                         }*/
+                    }
+                },
+                complete: {
+                }
+            });
+
+        });
+
+        $("#estadoinc").change(function() {
+            var estadoinc = $("#estadoinc").val();
+            /*Si la incidencia se cierra, podemos poner valores a la descripción de detalle y a la solución*/
+            if (estadoinc == "Cerrada") {
+                $("#solucion").css("display", "block");
+                $("#lblsolucion").css("visibility", "visible");
+                $("#lblsolucion_det").css("visibility", "visible");
+                $("#solucion_det").css("display", "block");
+            }
+            else
+            {
+                $("#solucion").css("display", "none");
+                $("#solucion_det").css("display", "none");
+                $("#lblsolucion").css("visibility", "hidden");
+                $("#lblsolucion_det").css("visibility", "hidden");
+            }
+
+            if (estadoinc == "Abierta en Proveedor") {
+                $.gritter.add({
+                    // (string | mandatory) the heading of the notification
+                    title: 'Incidencia con Proveedor',
+                    // (string | mandatory) the text inside the notification
+                    text: 'En principio las incidencias con proveedores se asignan al Jefe de Departamento',
+                    image: '/img/ok.png'
+                });
+                /*ponemos como responsable al jefe de departamento*/
+                $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: "<?php echo $this->baseUrl('/departamentos/getjefedepartamento/'); ?>",
+                    async: false,
+                    // you can use an object here
+                    data: {'id_departamento': id_departamento},
+                    //includes the response status (e.g. 404 not found) and an error message
+                    error: function(xhr, status, error) {
+                        $.gritter.add({
+                            // (string | mandatory) the heading of the notification
+                            title: '¡Error al obtener el jefe del departamento!',
+                            // (string | mandatory) the text inside the notification
+                            text: 'No se han podido obtener los profesores del departamento ',
+                            image: '/img/block.png'
+                        });
+                    },
+                    success: function(data) {
+                        $("html").css('cursor', 'auto');
+                        if (data["estado"]) {
+                            var imagen = '/img/fail.png';
+                            var texto = "Ha ocurrido un error en la consulta a la bbdd: <br/>" + data["respuesta"];
+                        }
+                        else {
+                            /*rellenamos el combo con los profesores del departamento:*/
+                            $.each(data, function(val, text) {
+                                $("#responsable").val(val);
+                            });
+                        }
+                    },
+                    complete: {
+                    }
+                });
+            }
+        });
+        /*Lo ejecutamos al menos una vez:*/
+        $("#aulas_id_aula").change();
+        $("#mnuincidencias").addClass("active");
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?>
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+
+    <!-- start: Content -->
+    <!-- start: Content -->
+    <div id="content" class="span11">
+        <div class="row-fluid">
+            <h1 id="titulo">Alta de Incidencias</h1>
+            <div id="herramientas"></div>
+            <p><span id="garantia" class="label label-important"></span></p>
+        </div>
+        <div class="row-fluid">
+            <div class="box span12">
+                <div class="box-header" data-original-title>
+                    <h2><i class="halflings-icon edit"></i><span class="break"></span>Nueva Incidencia</h2>
+                    <div class="box-icon">
+                        <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                        <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                        <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                    </div>
+                </div>
+                <div class="box-content">
+                    <form method="<?php echo $this->formulario->getMethod() ?>" action="<?php echo $this->formulario->getAction() ?>" name="<?php echo $this->formulario->getName() ?>" id="<?php echo $this->formulario->getName() ?>">
+                        <div class="row-fluid">
+                            <div class="span12">
+                                <div class="row-fluid">
+                                    <div class="span2">
+                                        <label>Fecha</label>
+                                        <?php echo $this->formulario->fecha_incidencia->renderViewHelper(); ?>
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Aula</label>
+                                        <?php echo $this->formulario->aulas_id_aula->renderViewHelper(); ?>
+                                    </div><!--/span-->
+                                    <div class="span4">
+                                        <label>Asignada a</label>
+                                        <?php echo $this->formulario->responsable->renderViewHelper(); ?>
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Prioridad</label>
+                                        <?php echo $this->formulario->prioridad->renderViewHelper(); ?>
+                                    </div><!--/span-->
+
+                                    <div class="span2">
+                                        <label>Estado Incidencia</label>
+                                        <?php echo $this->formulario->estadoinc->renderViewHelper(); ?>
+                                    </div><!--/span-->
+
+
+                                </div><!--/row-->
+                                <div class="row-fluid">
+                                    <div class="span12">
+                                        <label>Causa</label>
+                                        <?php echo $this->formulario->id_incidencia->renderViewHelper(); ?>
+                                        <?php echo $this->formulario->causa->renderViewHelper(); ?>
+                                    </div><!--/span-->
+                                </div><!--/row-->
+                                <div class="row-fluid">
+                                    <label>Descripción</label>
+
+                                    <?php echo $this->formulario->descripcion->renderViewHelper(); ?>
+                                </div><!--/row-->
+                                <div class="row-fluid">
+                                    <div class="span12">
+                                        <label id="lblsolucion" style="visibility:hidden;">Solución</label>
+                                        <?php echo $this->formulario->solucion->renderViewHelper(); ?>
+                                    </div><!--/span-->
+                                </div><!--/row-->
+                                <div class="row-fluid">
+                                    <label id="lblsolucion_det" style="visibility:hidden;">Descripción solución</label>
+
+                                    <?php echo $this->formulario->solucion_det->renderViewHelper(); ?>
+                                </div><!--/row-->
+                                <div class="form-actions">
+                                    <?php echo $this->formulario->guardar->renderViewHelper(); ?>
+                                    <?php echo $this->formulario->cancelar->renderViewHelper(); ?>
+                                </div><!--/form-actions-->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div><!--/span-->
+        </div><!--/row-->
+
+    </div><!--/#content.span11-->
+</div><!--/fluid-row-->

@@ -1,0 +1,206 @@
+
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?> 
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+
+    <!-- start: Content -->
+    <div id="content" class="span11">
+        <div id="presentacion">
+            <div class="row-fluid">
+
+                <img alt="Logotipo del centro" src="/img/logo.jpg">
+            </div>
+            <div class="row-fluid">
+                <h1>Bienvenido</h1>
+            </div>
+            <div class="row-fluid">
+                <p>Estás en la aplicación de gestión de app-name</p>
+                <p>Desde el menú de la izquierda podrás dar de alta incidencias, mantenimientos o hacer consultas del inventario o proveedores.</p>
+            </div>
+            <button id="ayuda">Ver ayuda</button>
+        </div>
+
+
+        <div id="manualayuda" style="display:none">
+            <div class="row-fluid">
+                <h1>Manual de Ayuda</h1>
+            </div>
+
+
+            <div class="row-fluid">
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="halflings-icon edit"></i><span class="break"></span>Incidencias</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+                    <div class="box-content">
+
+                        <p>Las incidencias se establecen a nivel de departamento. Los usuarios con perfil "Profesor" y "Jefe de Departamento" podrán dar de alta incidencias exclusivamente en su departamento.
+                            Los usuarios con perfil "Secretario", "Jefe de Estudios" y "Director" podrán ver y dar de alta incidencias en cualquier departamento, independiente
+                            del que tengan asignado. El cambio de departamento se realiza desde el menú superior.</p>
+                        <p>Las incidencias se asignan siempre a un responsable del aula. La aplicación mostrará si los equipos están en garantía. 
+                            En el caso de que sea una incidencia abierta con el proveedor, el sistema propondrá que el responsable de la misma sea el jefe de departamento, siempre y cuando éste figure como responsable de aula.
+                            El responsable del aula podrá posteriormente reasignar la incidencia a cualquier persona del departamento. </p>
+                        <p>Una incidencia la puede resolver la persona asignada en cada momento o el propio responsable/s del aula. </p>
+                        <p>El sistema manda un correo a todos los profesores de un aula  cuando ocurre una incidencia y otro cuando se cierra. Los profesores del aula que 
+                            pertenezcan a otro departamento, recibirán información de las incidencias que ocurran en cualquier aula a la que asistan 
+                            (por ej. un profesor de FOL en un aula del departamento de informática) pero solo podrán consultar la incidencia a través del 
+                            enlace en el correo electrónico enviado. El resto lo podrá hacer así o directamente mediante el uso del programa.</p>
+                        <p>No se envían correos por actualizaciones de incidencias, tan solo a los nuevos responsables de las mismas en caso de que se reasignen.</p>
+                        <p>Se pueden producir dos tipos de incidencias, correspondientes a los dos elementos del menú de Incidencias de la aplicación, en función de si se producen sobre material fungible o material no fungible:
+                        </p>
+                        <h3>Incidencias equipos</h3>
+                        <p>El material considerado no fungible estará inventariado y para abrir una incidencia el sistema nos solicitará que seleccionemos previamente el equipo del inventario. El sistema solo mostrará el material del inventario que se encuentre en estado “En uso”. 
+                            Si el material se encuentra en estado “Baja” o “Averiado” no se mostrará.  En cualquier momento se podrá modificar el estado del material desde la propia incidencia, sin tener que ir al inventario.
+                        </p>
+
+                        <h3>Incidencias fungibles</h3>
+                        <p>El funcionamiento es similar al caso anterior. En este caso las incidencias se asocian al aula y no al material. </p>
+
+                    </div>
+                </div><!--/span-->
+            </div>
+
+
+            <div class="row-fluid">
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="halflings-icon edit"></i><span class="break"></span>Mantenimiento</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+                    <div class="box-content">
+                        <p>Se utilizará esta opción exclusivamente para marcar los mantenimientos que haya que hacer a cada aula, normalmente con periodicidad anual: 
+                            reinstalación de sistemas operativos en ordenadores, comprobación de inventario del aula, etc.
+                            El software enviará un correo electrónico a los profesores que vayan al aula en el que se indicará lo que hay que realizar, la persona responsable y por último
+                            proporcionará un listado de los equipos que deberían existir en el aula, para control de inventario.</p>
+                        <p>El software guardará trazabilidad de los mantenimientos que se han realizado sobre cada equipo.</p>
+                    </div>
+                </div><!--/span-->
+            </div>
+
+
+
+            <div class="row-fluid">
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="halflings-icon edit"></i><span class="break"></span>Inventario</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+                    <div class="box-content">
+                        <p>El inventario se establece a nivel de departamento. Los usuarios con perfil "Profesor" y "Jefe de Departamento" podrán ver y modificar exclusivamente el inventario de su departamento,
+                            <span class="text-error">pero podrán dar de alta equipos en cualquier departamento.</span>
+                            Los usuarios con perfil "Secretario", "Jefe de Estudios" y "Director" podrán ver y dar de alta equipos en cualquier departamento, independiente
+                            del que tengan asignado. El cambio de departamento se realiza desde el menú superior.</p>
+                        <p>Para dar de alta nuevos materiales será necesario haber configurado previamente aulas, departamentos, proveedores y tipos de materiales.</p>
+                    </div>
+                </div><!--/span-->
+            </div>
+
+            <div class="row-fluid">
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="halflings-icon edit"></i><span class="break"></span>Compras</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+                    <div class="box-content">
+                        <p class="text-error">Este módulo está pendiente. Su función será gestionar la trazabilidad de las solicitudes de compra hasta su aprobación así como la posterior inclusión de la compra en el inventario y la evaluación del proveedor.</p>
+                    </div>
+                </div><!--/span-->
+            </div>
+
+            <div class="row-fluid">
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="halflings-icon edit"></i><span class="break"></span>Configuración</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+                    <div class="box-content">
+                        <h3>Departamentos</h3>
+                        <p>Aquí se configurará la lista de departamentos del centro. Se puede asignar a cada departamento un código. Este código lo utilizará la aplicación para generar los códigos de los equipos del inventario.</p>
+                        <h3>Usuarios</h3>
+                        <h5>Tipos de Usuarios:</h5>
+                        Los usuarios del sistema son los empleados del centro. Se les pueden asignar distintos perfiles a los que luego se podrán asociar los permisos adecuados:
+                        <ul>
+                            <li>Profesor</li>
+                            <li>Jefe de Departamento</li>
+                            <li>Jefe de Estudios</li>
+                            <li>Secretario</li>
+                            <li>Director</li>
+                        </ul>
+                        <h5>Nuevos usuarios</h5>
+                        <p>Se pueden dar de alta nuevos usuarios y desde ese momento ya recibirán avisos de la plataforma. 
+                            Recibirá también un correo de activación con un enlace para configurar su contraseña y tener acceso efectivo a la aplicación.</p>
+                        <h5>Borrar usuarios</h5>
+                        <p>No se pueden borrar usuarios que hayan participado de alguna manera en algún registro del sistema (mantenimientos, incidencias, etc).</p> 
+                        <h5>Baja y activación de usuarios</h5>
+                        <p>Podremos dar de baja a cualquier usuario y les llegará un aviso a su correo electrónico. Desde ese momento no tendrán acceso a la plataforma y dejarán de recibir avisos. Posteriormente se podrán volver a activar, continuarán con la contraseña de acceso que tuvieran pero habrá que configurar de nuevo sus aulas de referencia.</p>
+                        <p></p>
+                    <h3>Aulas</h3>
+                    <p>Podremos listar o dar de alta aulas del centro. Se deben marcar los responsables de cada aula, aunque para ello es necesario haber configurado
+                    previamente en cada usuario las aulas a las que asiste.</p>
+                    <h3>Materiales</h3>
+                    <p>Desde aquí configuraremos una serie de categorias para los materiales del inventario. En cada categoría se deberá indicar si tiene mantenimiento o no. Esto resultará util para obtener listados de los equipos de las aulas que requieren mantenimiento"
+                    <h3>Proveedores</h3>
+                    <p>La aplicación guarda un listado de proveedores con sus datos de contacto. <span class="text-error">Aunque no todos los departamentos trabajen con todos los proveedores, 
+                            la información al respecto que aparece en el listado de proveedores es meramente informativa. </span></p>
+                    <h3>Permisos</h3>
+                    <p>El sistema permite asignar permisos por roles a cada una de las partes de la aplicación. 
+                        De cualquier forma, un Profesor o Jefe de Departamento estará límitado en sus permisos a su departamento, mientras que los perfiles de Secretario, Jefe de Estudios o Director no.
+                    </p>
+                    <p class="text-error">El área de configuración de la aplicación no distingue entre departamentos para su configuración. Si por ejemplo se habilita a un jefe de departamento para dar de alta o borrar usuarios, podrá hacerlo sobre cualquier departamento.</p>
+                    </div>
+                </div><!--/span-->
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+    </div><!--/#content.span11-->
+    <script>
+        $("#ayuda").click(function() {
+            $("#presentacion").css("display", "none");
+            $("#manualayuda").css("display", "block");
+        });
+    </script>
+
+
+
+
+
+</div><!--/fluid-row-->
+
+

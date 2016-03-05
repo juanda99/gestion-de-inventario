@@ -1,0 +1,36 @@
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?> 
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+
+    <!-- start: Content -->
+    <!-- start: Content -->
+    <div id="content" class="span11">
+        <div class="row-fluid">
+            <h1>An error occurred</h1>
+            <h2><?php echo $this->message ?></h2>
+
+            <?php if (isset($this->exception)): ?>
+
+                <h3>Exception information:</h3>
+                <p>
+                    <b>Message:</b> <?php echo $this->exception->getMessage() ?>
+                </p>
+
+                <h3>Stack trace:</h3>
+                <pre><?php echo $this->exception->getTraceAsString() ?>
+                </pre>
+
+                <h3>Request Parameters:</h3>
+                <pre><?php echo $this->escape(var_export($this->request->getParams(), true)) ?>
+                </pre>
+
+            <?php endif ?>
+        </div>
+    </div><!--/#content.span11-->
+</div><!--/fluid-row-->
+

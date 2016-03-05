@@ -1,0 +1,703 @@
+<script type="text/javascript">
+    $(document).ready(function() {     
+        /*******************************************************************/
+        /*Configuración datatables                                         */
+        /*******************************************************************/
+        $.extend($.fn.dataTableExt.oStdClasses, {
+            "sWrapper": "dataTables_wrapper form-inline"
+        });
+
+        $.fn.dataTableExt.oApi.fnStandingRedraw = function(oSettings) {
+            if (oSettings.oFeatures.bServerSide === false) {
+                var before = oSettings._iDisplayStart;
+                oSettings.oApi._fnReDraw(oSettings);
+                // iDisplayStart has been reset to zero - so lets change it back
+                oSettings._iDisplayStart = before;
+                oSettings.oApi._fnCalculateEnd(oSettings);
+            }
+            // draw the 'current' page
+            oSettings.oApi._fnDraw(oSettings);
+        };
+        /* API method to get paging information */
+        $.fn.dataTableExt.oApi.fnPagingInfo = function(oSettings)
+        {
+            return {
+                "iStart": oSettings._iDisplayStart,
+                "iEnd": oSettings.fnDisplayEnd(),
+                "iLength": oSettings._iDisplayLength,
+                "iTotal": oSettings.fnRecordsTotal(),
+                "iFilteredTotal": oSettings.fnRecordsDisplay(),
+                "iPage": Math.ceil(oSettings._iDisplayStart / oSettings._iDisplayLength),
+                "iTotalPages": Math.ceil(oSettings.fnRecordsDisplay() / oSettings._iDisplayLength)
+            };
+        }
+        /* Bootstrap style pagination control */
+        $.extend($.fn.dataTableExt.oPagination, {
+            "bootstrap": {
+                "fnInit": function(oSettings, nPaging, fnDraw) {
+                    var oLang = oSettings.oLanguage.oPaginate;
+                    var fnClickHandler = function(e) {
+                        e.preventDefault();
+                        if (oSettings.oApi._fnPageChange(oSettings, e.data.action)) {
+                            fnDraw(oSettings);
+                        }
+                    };
+
+                    $(nPaging).addClass('pagination').append(
+                            '<ul>' +
+                            '<li class="prev disabled"><a href="#">&larr; ' + oLang.sPrevious + '</a></li>' +
+                            '<li class="next disabled"><a href="#">' + oLang.sNext + ' &rarr; </a></li>' +
+                            '</ul>'
+                            );
+                    var els = $('a', nPaging);
+                    $(els[0]).bind('click.DT', {action: "previous"}, fnClickHandler);
+                    $(els[1]).bind('click.DT', {action: "next"}, fnClickHandler);
+                },
+                "fnUpdate": function(oSettings, fnDraw) {
+                    var iListLength = 5;
+                    var oPaging = oSettings.oInstance.fnPagingInfo();
+                    var an = oSettings.aanFeatures.p;
+                    var i, j, sClass, iStart, iEnd, iHalf = Math.floor(iListLength / 2);
+
+                    if (oPaging.iTotalPages < iListLength) {
+                        iStart = 1;
+                        iEnd = oPaging.iTotalPages;
+                    }
+                    else if (oPaging.iPage <= iHalf) {
+                        iStart = 1;
+                        iEnd = iListLength;
+                    } else if (oPaging.iPage >= (oPaging.iTotalPages - iHalf)) {
+                        iStart = oPaging.iTotalPages - iListLength + 1;
+                        iEnd = oPaging.iTotalPages;
+                    } else {
+                        iStart = oPaging.iPage - iHalf + 1;
+                        iEnd = iStart + iListLength - 1;
+                    }
+
+                    for (i = 0, iLen = an.length; i < iLen; i++) {
+                        // Remove the middle elements
+                        $('li:gt(0)', an[i]).filter(':not(:last)').remove();
+
+                        // Add the new list items and their event handlers
+                        for (j = iStart; j <= iEnd; j++) {
+                            sClass = (j == oPaging.iPage + 1) ? 'class="active"' : '';
+                            $('<li ' + sClass + '><a href="#">' + j + '</a></li>')
+                                    .insertBefore($('li:last', an[i])[0])
+                                    .bind('click', function(e) {
+                                        e.preventDefault();
+                                        oSettings._iDisplayStart = (parseInt($('a', this).text(), 10) - 1) * oPaging.iLength;
+                                        fnDraw(oSettings);
+                                    });
+                        }
+
+                        // Add / remove disabled classes from the static elements
+                        if (oPaging.iPage === 0) {
+                            $('li:first', an[i]).addClass('disabled');
+                        } else {
+                            $('li:first', an[i]).removeClass('disabled');
+                        }
+
+                        if (oPaging.iPage === oPaging.iTotalPages - 1 || oPaging.iTotalPages === 0) {
+                            $('li:last', an[i]).addClass('disabled');
+                        } else {
+                            $('li:last', an[i]).removeClass('disabled');
+                        }
+                    }
+                }
+            }
+        });
+
+
+        $.fn.dataTableExt.oApi.fnMultiFilter = function(oSettings, oData) {
+            for (var key in oData)
+            {
+                if (oData.hasOwnProperty(key))
+                {
+                    for (var i = 0, iLen = oSettings.aoColumns.length; i < iLen; i++)
+                    {
+                        if (oSettings.aoColumns[i].sName == key)
+                        {
+                            /* Add single column filter */
+                            oSettings.aoPreSearchCols[ i ].sSearch = oData[key];
+                            break;
+                        }
+                    }
+                }
+            }
+            this.oApi._fnReDraw(oSettings);
+        };
+
+
+        /******************************************************************/
+        /* INICIALIZACIÓN DATATABLES: Configuración columnas y script php */
+        /******************************************************************/
+        oTable = $('#tabla').dataTable({
+            "sDom": "<'row-fluid'<'span6'l><'span6'f>r>t<'row-fluid'<'span12'i><'span12 center'p>>",
+            //"sDom": "<'row-fluid'<'span6'l><'span6'f>r>t<'row-fluid'<'span12'i><'span12 center'p>>",
+            /*"<'row-fluid'<'span6'T><'span6'f>r>t<'row-fluid'<'span6'i><'span6'p>>",*/
+            "fnServerParams": function(aoData) {
+                aoData.push({"name": "estado", "value": 'En uso'});
+                aoData.push({"name": "id_departamento", "value": id_departamento});
+            },
+            "sAjaxSource": "<?php echo $this->baseUrl("/php/mantenimientos.php"); ?>",
+            "bProcessing": true,
+            "bServerSide": true,
+            "bStateSave": true,
+            "bAutoWidth": false,
+            "sPaginationType": "bootstrap",
+            "fnInitComplete": function() {
+                var oSettings = $('#tabla').dataTable().fnSettings();
+                for (var i = 0; i < oSettings.aoPreSearchCols.length; i++) {
+                    if (oSettings.aoPreSearchCols[i].sSearch.length > 0) {
+                        $("thead input, thead select")[i].value = oSettings.aoPreSearchCols[i].sSearch;
+                        // $("tfoot input")[i].className = "";
+                    }
+                }
+            },
+            "aoColumns": [
+                {
+                    "mData": "fecha_mantenimiento",
+                    "mRender": function(data, type, full) {
+                        return fecha_ddmmyyyy(data);
+                    },
+                    "bSearchable": false,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sWidth": "90px",
+                    "sName": "fecha_mantenimiento"
+                },
+                {
+                    "mData": "aula",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "aula"
+                },
+                {
+                    "mData": "causa",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "causa"
+                },
+                {
+                    "mData": "fecha_solucion",
+                    "mRender": function(data, type, full) {
+                        if (data === "0000-00-00")
+                            return "<span class='label label-important'>Abierto</span>";
+                        else
+                            return "<span class='label'>Cerrado</span>";
+                    },
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "fecha_solucion"
+                },
+                {
+                    "mData": "nombrecompleto",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "nombrecompleto"
+                },
+                {
+                    "mData": "prioridad",
+                    "mRender": function(data, type, full) {
+                        if (data === "Alta")
+                            return "<span class='label label-important'>Alta</span>";
+                        else if (data === "Media")
+                            return "<span class='label label-warning'>Media</span>";
+                        else
+                            return "<span class='label label-success'>Baja</span>";
+                    },
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "prioridad"
+                },
+                {
+                    "mData": "id_mantenimiento",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+
+                },
+                {
+                    "mData": "descripcion",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+
+                },
+                {
+                    "mData": "fecha_solucion",
+                    "mRender": function(data, type, full) {
+                        return fecha_ddmmyyyy(data);
+                    },
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "responsable",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "detectadapor",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+
+                },
+                {
+                    "mData": "id_departamento",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "departamento",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "aulas_id_aula",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "fecha_solucion",
+                    "sClass": "center accion",
+                    "mRender": function(data, type, full) {
+                        if (data === "0000-00-00")
+                            return '<a title="Editar mantenimiento" style="margin:3px;" class="btn btn-info editarbtn" href="#"><i class="halflings-icon edit halflings-icon"></i></a><a title="Eliminar mantenimiento" data-toggle="modal" href="#deleteModal" style="margin:3px;" class="btn btn-danger borrarbtn"><i class="halflings-icon trash halflings-icon"></i></a><a title="Marcar mantenimiento como terminado" style="margin:3px;" class="btn btn-success cerrarbtn" href="#"><i class="halflings-icon ok halflings-icon"></i></a>';
+                        else
+                            return '<a title="Editar mantenimiento" style="margin:3px;" class="btn btn-info editarbtn" href="#"><i class="halflings-icon edit halflings-icon"></i></a><a title="Eliminar mantenimiento" data-toggle="modal" href="#deleteModal" style="margin:3px;" class="btn btn-danger borrarbtn"><i class="halflings-icon trash halflings-icon"></i></a><button title="Marcar mantenimiento como terminado" style="margin:3px;" disabled="disabled" class="btn btn-success nocerrarbtn" href="#"><i class="halflings-icon ok halflings-icon"></i></button>';
+                    },
+                    "bSortable": false,
+                    "bSearchable": false,
+                    "sWidth": "160px"
+
+                }
+            ],
+            "aaSorting": [[0, "desc"]],
+            "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+            "oLanguage": {
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros por página",
+                "sZeroRecords": "No se encontraron resultados",
+                "sInfo": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando 0 a 0 de 0 registros",
+                "sInfoFiltered": "(Filtrado de _MAX_ registros en total)",
+                "sLoadingRecords": "Por favor espere - cargando...",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sPrevious": "Anterior",
+                    "sNext": "Siguiente",
+                    "sLast": "Último"
+                }
+            },
+            "fnDrawCallback": function() {
+                $('#tabla tbody td:not(.accion)').click(edicion);
+
+                $('#tabla tbody tr').hover(function() {
+                    $(this).css('cursor', 'pointer');
+                }, function() {
+                    $(this).css('cursor', 'auto');
+                });
+            }
+        });
+
+        $(".sborrar").click(function() {
+            $(this).prev().val("");
+            $("thead input").keyup();
+        });
+
+        $("thead input, thead select").on("click keyup", function() {
+            vsfecha_mantenimiento = $("#sfecha_mantenimiento").val();
+            vsaula = $("#saula").val();
+            vscausa = $("#scausa").val();
+            vsfecha_solucion = $("#sfecha_solucion").val();
+            vsnombrecompleto = $("#snombrecompleto").val();
+            vsprioridad = $("#sprioridad").val();
+
+
+            /* Filter on the column (the index) of this element */
+
+            //oTable.fnMultiFilter( { kk: this.value } );
+            oTable.fnMultiFilter({"fecha_mantenimiento": vsfecha_mantenimiento, "aula": vsaula, "causa": vscausa, "fecha_solucion": vsfecha_solucion, "nombrecompleto": vsnombrecompleto, "prioridad": vsprioridad});
+            //oTable.fnDraw();
+            //oTable.fnMultiFilter( this.value, $("tfoot input").index(this) );
+        });
+
+
+
+
+
+
+        function removeClass(element)
+        {
+            var row = classTable.fnGetData(element);
+            var id = row[0];
+        }
+
+
+
+        /********************************************************************/
+        /*Table Tools Configuración botón añadir concepto   A RELLENAR       */
+        /********************************************************************/
+        TableTools.BUTTONS.boton = $.extend(true, TableTools.buttonBase, {
+            "sNewLine": "<br>",
+            "sButtonText": "Copy to element",
+            "sDiv": ""
+        });
+        /*******************************************************************/
+        /*Configuración TableTools                                         */
+        /*******************************************************************/
+        var oTableTools = new TableTools(oTable, {
+            "sSwfPath": "/js/swf/copy_csv_xls_pdf.swf",
+            "aButtons": [
+                {
+                    "sExtends": "boton",
+                    "sButtonText": "Listado",
+                    "fnClick": function(nButton, oConfig) {
+                        //event.preventDefault();
+                        showList();
+                    }
+                },
+                {
+                    "sExtends": "boton",
+                    "sButtonText": "Nuevo",
+                    "fnClick": function(nButton, oConfig) {
+                        window.location.href = '<?php echo $this->baseUrl("/mantenimientos/editar/"); ?>';
+                    }
+                },
+                {
+                    "sExtends": "xls",
+                    "sButtonText": "Excel",
+                    "mColumns": "sortable",
+                    "sFileName": "listado_mantenimientos.xls"
+                }
+
+            ]
+        });
+        $('#herramientas').before(oTableTools.dom.container);
+        // Set the classes that TableTools uses to something suitable for Bootstrap
+        $.extend(true, $.fn.DataTable.TableTools.classes, {
+            "container": "btn-group",
+            "buttons": {
+                "normal": "btn",
+                "disabled": "btn disabled"
+            },
+            "collection": {
+                "container": "DTTT_dropdown dropdown-menu",
+                "buttons": {
+                    "normal": "",
+                    "disabled": "disabled"
+                }
+            }
+        });
+
+        // Have the collection use a bootstrap compatible dropdown
+        $.extend(true, $.fn.DataTable.TableTools.DEFAULTS.oTags, {
+            "collection": {
+                "container": "ul",
+                "button": "li",
+                "liner": "a"
+            }
+        });
+
+
+        /*******************************************************************/
+        /* EVENTOS DE LA PÁGINA                                            */
+        /*******************************************************************/
+        $.extend($.gritter.options, {
+            /*class_name: 'gritter-light',*/
+            position: 'bottom-right', // possibilities: bottom-left, bottom-right, top-left, top-right
+            fade_in_speed: 100, // how fast notifications fade in (string or int)
+            fade_out_speed: 100, // how fast the notices fade out
+            time: 3000 // hang on the screen for...
+        });
+
+
+
+        /*Borrado*/
+        $("#tabla").on('click', ".borrarbtn", function(e) {
+            e.preventDefault();
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            /*var jqTds = $('>td', nRow);*/
+            id_inventario = aData.id_inventario;
+            referencia = aData.modelo;
+            $(".modal-body").html("<p> ¿Seguro que quieres borrar " + referencia + "?</p>");
+        });
+
+        $("#tabla").on('click', ".editarbtn", edicion);
+        function edicion(e) {
+            e.preventDefault();
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            window.location = "<?php echo $this->baseUrl('/mantenimientos/editardet/id_mantenimiento/'); ?>" + aData.id_mantenimiento;
+        }
+
+        $("#tabla").on('click', ".cerrarbtn", function(e) {
+            e.preventDefault();
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            /*actualizamos la fecha al día actual y el estado vía ajax*/
+            e.preventDefault();
+            $("html").css('cursor', 'wait');
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/mantenimientos/guardar/'); ?>",
+                async: false,
+                // you can use an object here
+                data: {id_mantenimiento: aData.id_mantenimiento, aulas_id_aula: aData.aulas_id_aula, causa: aData.causa,
+                    descripcion: aData.descripcion, fecha_mantenimiento: fecha_ddmmyyyy(aData.fecha_mantenimiento),
+                    prioridad: aData.prioridad, responsable: aData.responsable, detectadapor: aData.detectadapor, fecha_solucion: fecha_ddmmyyyy(hoy())},
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al guardar el registro!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha actualizado el Mantenimiento',
+                        image: '/img/block.png'
+                    });
+
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la inserción en la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else
+                    {
+                        var imagen = '/img/ok.png';
+                        var texto = "Se ha actualizado el Mantenimiento";
+
+                    }
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Cierre Mantenimiento ',
+                        // (string | mandatory) the text inside the notification
+                        text: texto,
+                        image: imagen
+
+                    });
+                    oTable.fnStandingRedraw();
+
+                },
+                complete: {
+                }
+            });
+
+
+
+
+        });
+
+        /*Borrado*/
+        $("#tabla").on('click', ".borrarbtn", function(e) {
+            e.preventDefault();
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            /*var jqTds = $('>td', nRow);*/
+            id_mantenimiento = aData.id_mantenimiento;
+            $(".modal-body").html("<p> ¿Seguro que quieres borrar este mantenimiento?</p>");
+        });
+
+
+        $("#borrar").click(function() {
+            $("html").css('cursor', 'wait');
+            $('#deleteModal').modal('hide');
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl() . '/mantenimientos/borrar' ?>",
+                async: false,
+                // you can use an object here
+                data: {id_mantenimiento: id_mantenimiento},
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $("html").css('cursor', 'auto');
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al borrar el registro!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha eliminado el Mantenimiento',
+                        image: '/img/block.png'
+                    });
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la eliminación de la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else
+                    {
+                        var imagen = '/img/ok.png';
+                        var texto = 'Se ha eliminado el Mantenimiento';
+                    }
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Mantenimiento ',
+                        // (string | mandatory) the text inside the notification
+                        text: texto,
+                        image: imagen
+
+                    });
+                    oTable.fnStandingRedraw();
+                }
+
+            });
+        });
+<?php if ($this->mostrar_mensaje) { ?>
+            var imagen = '/img/ok.png';
+            $.gritter.add({
+                // (string | mandatory) the heading of the notification
+                title: 'Mantenimientos',
+                // (string | mandatory) the text inside the notification
+                text: "Se ha procesado el mantenimiento",
+                image: imagen
+
+            });
+<?php } ?>
+
+
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?> 
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+
+    <!-- start: Content -->
+    <!-- start: Content -->
+    <div id="content" class="span11">
+        <div class="row-fluid">
+            <h1>Mantenimientos</h1>
+            <div id="herramientas"></div>
+        </div>
+        <div id="divlist" class="row-fluid">		
+            <div class="box span12">
+                <div class="box-header" data-original-title>
+                    <h2><i class="fa-icon-hdd"></i><span class="break"></span>Listado de Mantenimientos</h2>
+                    <div class="box-icon">
+                        <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                        <a href="#" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                        <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                    </div>
+                </div>
+                <div class="box-content">
+                    <table id="tabla" class="table table-striped table-bordered bootstrap-datatable datatable">
+                        <thead>
+                            <tr>
+                                <th>
+                        <div class="input-append" style="display:none">
+                            <input type="text" id="sfecha_mantenimiento"  placeholder="Filtrar fecha" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+
+                        </th>
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="saula"  placeholder="Filtrar aula" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+                        </th>                           
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="scausa"  placeholder="Filtrar causa" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div> 
+
+                        </th>
+                        <th>
+                            <select id="sfecha_solucion"   class="search_init" >
+                                <option value="" selected>Filtrar estado</option>
+                                <option value="0000-00-00">Abierto</option>
+                                <option value="">Todos</option>
+                            </select>
+                        </th>
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="snombrecompleto"  placeholder="Filtrar responsable" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+
+                        </th>
+                        <th>
+                            <select id="sprioridad"   class="search_init" >
+                                <option value="" selected>Filtrar prioridad</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+
+                        </th>
+                        <th><!--Id Mantenimiento--></th>     
+                        <th><!--Descripción--></th>
+                        <th><!--Fecha Solución--></th>
+                        <th><!--id Responsable--></th>
+                        <th><!--Detectado por--></th>
+                        <th><!--id_departamento--></th>
+                        <th><!--Departamento--></th>
+                        <th><!--aulas_id_aula--></th>
+                        <th><!--Acciones--></th>
+                        </tr>
+                        <tr>
+                            <th title="Fecha de alta del mantenimiento">Fecha</th>
+                            <th title="Aula del mantenimiento">Aula</th>                           
+                            <th title="Causa del mantenimiento">Causa</th>
+                            <th title="Estado del mantenimiento, abierto o terminado.">Estado</th>
+                            <th title="Responsable del mantenimiento">Responsable</th>
+                            <th title="Prioridad del mantenimiento">Prioridad</th>
+                            <th>Id Mantenimiento</th>     
+                            <th>Descripción</th>
+                            <th>Fecha Solución</th>
+                            <th>id Responsable</th>
+                            <th>Detectado por</th>
+                            <th>id_departamento</th>
+                            <th>Departamento</th>
+                            <th>aulas_id_aula</th>
+                            <th title="Modificar o eliminar mantenimiento">Acciones</th>
+                        </tr>
+                        </thead>  
+                        <tbody></tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>            
+                </div>
+            </div><!--/span-->
+
+        </div><!--/row-->
+
+    </div><!--/#content.span11-->
+    <div class="modal hide" id="deleteModal">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">×</button>
+            <h3>Borrar Mantenimiento</h3>
+        </div>
+        <div class="modal-body">
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn" data-dismiss="modal">Cancelar</a>
+            <a id="borrar" href="#" class="btn btn-primary">Borrar</a>
+        </div>
+    </div>
+</div><!--/fluid-row-->

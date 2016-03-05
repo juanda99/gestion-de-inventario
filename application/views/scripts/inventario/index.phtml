@@ -1,0 +1,865 @@
+<script type="text/javascript">
+    $(document).ready(function() {
+        /*******************************************************************/
+        /* Validación formulario                                           */
+        /*******************************************************************/
+        var formvalidator = $("#formulario").validate({
+            /*bug hacía el validate con la fecha "antigua", antes de la selección*/
+
+            rules: {
+                modelo: {
+                    required: true
+                },
+                tipos_id_tipo: {
+                    required: true
+                },
+                proveedores_id_proveedor: {
+                    required: true
+                },
+                aulas_id_aula: {
+                    required: true
+                }
+            },
+            messages: {
+                modelo: {
+                    required: "Debe rellenar los datos del equipo"
+                },
+                tipos_id_tipo: {
+                    required: "Debe rellenar el tipo de material"
+                },
+                proveedores_id_proveedor: {
+                    required: "Debe rellenar el proveedor"
+                },
+                aulas_id_aula: {
+                    required: "Debe rellenar el aula"
+                }
+            }
+        });
+        /*******************************************************************/
+        /*Configuración datatables                                         */
+        /*******************************************************************/
+        $.extend($.fn.dataTableExt.oStdClasses, {
+            "sWrapper": "dataTables_wrapper form-inline"
+        });
+        $.fn.dataTableExt.oApi.fnStandingRedraw = function(oSettings) {
+            if (oSettings.oFeatures.bServerSide === false) {
+                var before = oSettings._iDisplayStart;
+                oSettings.oApi._fnReDraw(oSettings);
+                // iDisplayStart has been reset to zero - so lets change it back
+                oSettings._iDisplayStart = before;
+                oSettings.oApi._fnCalculateEnd(oSettings);
+            }
+            // draw the 'current' page
+            oSettings.oApi._fnDraw(oSettings);
+        };
+        /* API method to get paging information */
+        $.fn.dataTableExt.oApi.fnPagingInfo = function(oSettings)
+        {
+            return {
+                "iStart": oSettings._iDisplayStart,
+                "iEnd": oSettings.fnDisplayEnd(),
+                "iLength": oSettings._iDisplayLength,
+                "iTotal": oSettings.fnRecordsTotal(),
+                "iFilteredTotal": oSettings.fnRecordsDisplay(),
+                "iPage": Math.ceil(oSettings._iDisplayStart / oSettings._iDisplayLength),
+                "iTotalPages": Math.ceil(oSettings.fnRecordsDisplay() / oSettings._iDisplayLength)
+            };
+        }
+        /* Bootstrap style pagination control */
+        $.extend($.fn.dataTableExt.oPagination, {
+            "bootstrap": {
+                "fnInit": function(oSettings, nPaging, fnDraw) {
+                    var oLang = oSettings.oLanguage.oPaginate;
+                    var fnClickHandler = function(e) {
+                        e.preventDefault();
+                        if (oSettings.oApi._fnPageChange(oSettings, e.data.action)) {
+                            fnDraw(oSettings);
+                        }
+                    };
+                    $(nPaging).addClass('pagination').append(
+                            '<ul>' +
+                            '<li class="prev disabled"><a href="#">&larr; ' + oLang.sPrevious + '</a></li>' +
+                            '<li class="next disabled"><a href="#">' + oLang.sNext + ' &rarr; </a></li>' +
+                            '</ul>'
+                            );
+                    var els = $('a', nPaging);
+                    $(els[0]).bind('click.DT', {action: "previous"}, fnClickHandler);
+                    $(els[1]).bind('click.DT', {action: "next"}, fnClickHandler);
+                },
+                "fnUpdate": function(oSettings, fnDraw) {
+                    var iListLength = 5;
+                    var oPaging = oSettings.oInstance.fnPagingInfo();
+                    var an = oSettings.aanFeatures.p;
+                    var i, j, sClass, iStart, iEnd, iHalf = Math.floor(iListLength / 2);
+                    if (oPaging.iTotalPages < iListLength) {
+                        iStart = 1;
+                        iEnd = oPaging.iTotalPages;
+                    }
+                    else if (oPaging.iPage <= iHalf) {
+                        iStart = 1;
+                        iEnd = iListLength;
+                    } else if (oPaging.iPage >= (oPaging.iTotalPages - iHalf)) {
+                        iStart = oPaging.iTotalPages - iListLength + 1;
+                        iEnd = oPaging.iTotalPages;
+                    } else {
+                        iStart = oPaging.iPage - iHalf + 1;
+                        iEnd = iStart + iListLength - 1;
+                    }
+
+                    for (i = 0, iLen = an.length; i < iLen; i++) {
+                        // Remove the middle elements
+                        $('li:gt(0)', an[i]).filter(':not(:last)').remove();
+                        // Add the new list items and their event handlers
+                        for (j = iStart; j <= iEnd; j++) {
+                            sClass = (j == oPaging.iPage + 1) ? 'class="active"' : '';
+                            $('<li ' + sClass + '><a href="#">' + j + '</a></li>')
+                                    .insertBefore($('li:last', an[i])[0])
+                                    .bind('click', function(e) {
+                                        e.preventDefault();
+                                        oSettings._iDisplayStart = (parseInt($('a', this).text(), 10) - 1) * oPaging.iLength;
+                                        fnDraw(oSettings);
+                                    });
+                        }
+
+                        // Add / remove disabled classes from the static elements
+                        if (oPaging.iPage === 0) {
+                            $('li:first', an[i]).addClass('disabled');
+                        } else {
+                            $('li:first', an[i]).removeClass('disabled');
+                        }
+
+                        if (oPaging.iPage === oPaging.iTotalPages - 1 || oPaging.iTotalPages === 0) {
+                            $('li:last', an[i]).addClass('disabled');
+                        } else {
+                            $('li:last', an[i]).removeClass('disabled');
+                        }
+                    }
+                }
+            }
+        });
+        $.fn.dataTableExt.oApi.fnMultiFilter = function(oSettings, oData) {
+            for (var key in oData)
+            {
+                if (oData.hasOwnProperty(key))
+                {
+                    for (var i = 0, iLen = oSettings.aoColumns.length; i < iLen; i++)
+                    {
+                        if (oSettings.aoColumns[i].sName == key)
+                        {
+                            /* Add single column filter */
+                            oSettings.aoPreSearchCols[ i ].sSearch = oData[key];
+                            break;
+                        }
+                    }
+                }
+            }
+            this.oApi._fnReDraw(oSettings);
+        };
+        /******************************************************************/
+        /* INICIALIZACIÓN DATATABLES: Configuración columnas y script php */
+        /******************************************************************/
+        oTable = $('#tabla').dataTable({
+            "sDom": "<'row-fluid'<'span6'l><'span6'f>r>t<'row-fluid'<'span12'i><'span12 center'p>>",
+            /*"<'row-fluid'<'span6'T><'span6'f>r>t<'row-fluid'<'span6'i><'span6'p>>",*/
+            "fnServerParams": function(aoData) {
+                aoData.push({"name": "id_departamento", "value": id_departamento});
+            },
+            "sAjaxSource": "<?php echo $this->baseUrl("/php/inventario.php"); ?>",
+            "bProcessing": true,
+            "bServerSide": true,
+            "bStateSave": true,
+            "bAutoWidth": false,
+            "sScrollX": "100%",
+            "bScrollCollapse": true,
+            "sPaginationType": "bootstrap",
+            "fnInitComplete": function() {
+                var oSettings = $('#tabla').dataTable().fnSettings();
+                for (var i = 0; i < oSettings.aoPreSearchCols.length; i++) {
+                    if (oSettings.aoPreSearchCols[i].sSearch.length > 0) {
+                        $("thead input, thead select")[i].value = oSettings.aoPreSearchCols[i].sSearch;
+                        // $("tfoot input")[i].className = "";
+                    }
+                }
+            },
+            "aoColumns": [
+                {
+                    "mData": "modelo",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "modelo"
+                },
+                {
+                    "mData": "codigo",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "codigo",
+                    "sWidth": "70px"
+                },
+                {
+                    "mData": "fecha_adquisicion",
+                    "mRender": function(data, type, full) {
+                        return fecha_ddmmyyyy(data);
+                    },
+                    "bSearchable": false,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "fecha_adquisicion",
+                    "sWidth": "80px"
+                },
+                {
+                    "mData": "aula",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "aula"
+                },
+                {
+                    "mData": "puesto",
+                    "bSearchable": false,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "puesto",
+                    "sWidth": "70px"
+                },
+                {
+                    "mData": "tipo",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "tipo"
+                },
+                {
+                    "mData": "proveedor",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "bSortable": true,
+                    "sName": "proveedor"
+                },
+                {
+                    "mData": "estado",
+                    "bSearchable": true,
+                    "bVisible": true,
+                    "mRender": function(data, type, full) {
+                        if (data == "En uso") {
+                            return '<span class="label label-success">En uso</span>';
+                        }
+                        else if (data == "Baja") {
+                            return '<span class="label">Baja</span>';
+                        }
+                        else if (data == "Averiado") {
+                            return '<span class="label label-important">Averiado</span>';
+                        }
+                    },
+                    "bSortable": true,
+                    "sName": "estado",
+                    "sWidth": "100px"
+                },
+                {
+                    "mData": "departamento",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false,
+                    "sName": "departamento"
+                },
+                {
+                    "mData": "id_inventario",
+                    "sClass": "center accion",
+                    "mRender": function(data, type, full) {
+                        return '<a title="Editar características del material" style="margin:3px;" class="btn btn-info editarbtn" href="#"><i class="halflings-icon edit halflings-icon"></i></a><a title="Eliminar el material del listado" data-toggle="modal" href="#deleteModal" style="margin:3px;" class="btn btn-danger borrarbtn"><i class="halflings-icon trash halflings-icon"></i></a><a  title="Ver historial de averías y mantenimientos del material" style="margin:3px;" class="btn btn-success historialbtn" href="<?php echo $this->baseUrl('/inventario/historial/id_inventario/'); ?>' + data + '"><i class="halflings-icon search halflings-icon"></i></a>';
+                    },
+                    "bSortable": false,
+                    "bSearchable": false,
+                    "sWidth": "140px"
+
+                },
+                {
+                    "mData": "id_inventario",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "aulas_id_aula",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "tipos_id_tipo",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "id_proveedor",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "obs",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                },
+                {
+                    "mData": "id_departamento",
+                    "bSearchable": false,
+                    "bVisible": false,
+                    "bSortable": false
+                }
+            ],
+            "aaSorting": [[0, "asc"]],
+            "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+            "oLanguage": {
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros por página",
+                "sZeroRecords": "No se encontraron resultados",
+                "sInfo": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando 0 a 0 de 0 registros",
+                "sInfoFiltered": "(Filtrado de _MAX_ registros en total)",
+                "sLoadingRecords": "Por favor espere - cargando...",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sPrevious": "Anterior",
+                    "sNext": "Siguiente",
+                    "sLast": "Último"
+                }
+            },
+            "fnDrawCallback": function() {
+                $('#tabla tbody td:not(.accion)').click(edicion);
+                $('#tabla tbody tr').hover(function() {
+                    $(this).css('cursor', 'pointer');
+                }, function() {
+                    $(this).css('cursor', 'auto');
+                });
+            }
+        });
+        $(".sborrar").click(function() {
+            $(this).prev().val("");
+            $("thead input").keyup();
+        });
+        $("thead input, thead select").on("click keyup", function() {
+            vsmodelo = $("#smodelo").val();
+            vsaula = $("#saula").val();
+            vstipo = $("#stipo").val();
+            vsproveedor = $("#sproveedor").val();
+            vsestado = $("#sestado").val();
+            /* Filter on the column (the index) of this element */
+            //oTable.fnMultiFilter( { kk: this.value } );
+            oTable.fnMultiFilter({"modelo": vsmodelo, "aula": vsaula, "tipo": vstipo, "proveedor": vsproveedor, "estado": vsestado});
+            //oTable.fnDraw();
+            //oTable.fnMultiFilter( this.value, $("tfoot input").index(this) );
+        });
+        function removeClass(element)
+        {
+            var row = classTable.fnGetData(element);
+            var id = row[0];
+        }
+
+
+
+        /********************************************************************/
+        /*Table Tools Configuración botón añadir concepto   A RELLENAR       */
+        /********************************************************************/
+        TableTools.BUTTONS.boton = $.extend(true, TableTools.buttonBase, {
+            "sNewLine": "<br>",
+            "sButtonText": "Copy to element",
+            "sDiv": ""
+        });
+        /*******************************************************************/
+        /*Configuración TableTools                                         */
+        /*******************************************************************/
+        var oTableTools = new TableTools(oTable, {
+            "sSwfPath": "/js/swf/copy_csv_xls_pdf.swf",
+            "aButtons": [
+                {
+                    "sExtends": "boton",
+                    "sButtonText": "Listado",
+                    "fnClick": function(nButton, oConfig) {
+                        //event.preventDefault();
+                        showList();
+                    }
+                },
+                {
+                    "sExtends": "boton",
+                    "sButtonText": "Nuevo",
+                    "fnClick": function(nButton, oConfig) {
+                        //event.preventDefault();
+                        showForm();
+                        resetearFormulario("Nuevo Material", formulario, formvalidator);
+
+                    }
+                },
+                {
+                    "sExtends": "xls",
+                    "sButtonText": "Excel",
+                    "mColumns": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "sFileName": "listado_inventario.xls"
+                }
+
+            ]
+        });
+        $('#herramientas').before(oTableTools.dom.container);
+        // Set the classes that TableTools uses to something suitable for Bootstrap
+        $.extend(true, $.fn.DataTable.TableTools.classes, {
+            "container": "btn-group",
+            "buttons": {
+                "normal": "btn",
+                "disabled": "btn disabled"
+            },
+            "collection": {
+                "container": "DTTT_dropdown dropdown-menu",
+                "buttons": {
+                    "normal": "",
+                    "disabled": "disabled"
+                }
+            }
+        });
+        // Have the collection use a bootstrap compatible dropdown
+        $.extend(true, $.fn.DataTable.TableTools.DEFAULTS.oTags, {
+            "collection": {
+                "container": "ul",
+                "button": "li",
+                "liner": "a"
+            }
+        });
+        /*******************************************************************/
+        /* EVENTOS DE LA PÁGINA                                            */
+        /*******************************************************************/
+        $.extend($.gritter.options, {
+            /*class_name: 'gritter-light',*/
+            position: 'bottom-right', // possibilities: bottom-left, bottom-right, top-left, top-right
+            fade_in_speed: 100, // how fast notifications fade in (string or int)
+            fade_out_speed: 100, // how fast the notices fade out
+            time: 3000 // hang on the screen for...
+        });
+        $("#cancelar").click(function() {
+            resetearFormulario("Nuevo Material", formulario, formvalidator);
+            showList();
+        });
+        /*Borrado*/
+        $("#tabla").on('click', ".borrarbtn", function(e) {
+            e.preventDefault();
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            /*var jqTds = $('>td', nRow);*/
+            id_inventario = aData.id_inventario;
+            referencia = aData.modelo;
+            $(".modal-body").html("<p> ¿Seguro que quieres borrar " + referencia + "?</p>");
+        });
+        $("#borrar").click(function() {
+            $("html").css('cursor', 'wait');
+            $('#deleteModal').modal('hide');
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl() . '/inventario/borrar' ?>",
+                async: false,
+                // you can use an object here
+                data: {id_inventario: id_inventario},
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $("html").css('cursor', 'auto');
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al borrar el registro!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha eliminado ' + referencia + ' del Inventario',
+                        image: '/img/block.png'
+                    });
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la eliminación de la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else
+                    {
+                        var imagen = '/img/ok.png';
+                        var texto = "Se ha eliminado " + referencia + ' del Inventario';
+                    }
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Inventario ',
+                        text: texto,
+                        image: imagen
+
+                    });
+                    //formulario.reset();
+                    oTable.fnStandingRedraw();
+                }
+
+            });
+        });
+        $("#tabla").on('click', ".editarbtn", edicion);
+        function edicion(e) {
+            e.preventDefault();
+            $("#btn_listado").removeClass("active");
+            var nRow = $(this).parents('tr')[0];
+            var aData = oTable.fnGetData(nRow);
+            /*var jqTds = $('>td', nRow);*/
+            formvalidator.resetForm();
+            $("#titulo").html("<i class='halflings-icon edit'></i><span class='break'></span>Modificar Material " + aData.modelo);
+            $("#id_inventario").val(aData.id_inventario);
+            $("#modelo").val(aData.modelo);
+            $("#codigo").val(aData.codigo);
+            $("#fecha_adquisicion").val(fecha_ddmmyyyy(aData.fecha_adquisicion));
+            $("#aulas_id_aula").val(aData.aulas_id_aula);
+            $("#aula").val(aData.aula);
+            $("#puesto").val(aData.puesto);
+            $("#tipos_id_tipo").val(aData.tipos_id_tipo);
+            $("#tipo").val(aData.tipo);
+            $("#proveedores_id_proveedor").val(aData.id_proveedor);
+            $("#proveedor").val(aData.proveedor);
+            $("#estado").val(aData.estado);
+            $("#obs").val(aData.obs);
+            $("#departamentos_id_departamento").val(aData.id_departamento);
+            $("#departamento").val(aData.departamento);
+            $('html, body').animate({
+                scrollTop: $("body").offset().top
+            }, 0);
+            showForm();
+        }
+        //$("#btncodigo").on('click', edicion);
+        $("#btncodigo").click(obtenerCodigo);
+        function obtenerCodigo(e) {
+            //e.preventDefault();
+            $("html").css('cursor', 'wait');
+            /*si el tipo hidden viene vacío el ajax no lo procesa, lo tenemos que extraer antes de la cadena*/
+            var dato = $("#departamentos_id_departamento").val();
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/inventario/obtenercodigo/'); ?>",
+                async: false,
+                // you can use an object here
+                data: {id_departamento: dato},
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al obtener un código para el material!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha obtenido un código para el material',
+                        image: '/img/block.png'
+                    });
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la obtención del código en la bbdd: <br/>" + data["respuesta"];
+                    }
+                    else
+                    {
+                        /*Escribimos el valor del código*/
+                        $("#codigo").val(data["respuesta"]);
+                    }
+                },
+                complete: {
+                }
+            });
+
+        }
+        $("#clonar").click(guardar);
+        $("#guardar").click(guardar);
+        function guardar(e) {
+            e.preventDefault();
+            var origen = $(this).attr("name");
+            $("html").css('cursor', 'wait');
+            resultado = $("#formulario").validate().form();
+            if (!resultado) {
+                $("html").css('cursor', 'auto');
+                return;
+            }
+            /*si el tipo hidden viene vacío el ajax no lo procesa, lo tenemos que extraer antes de la cadena*/
+            var dato = $("#modelo").val();
+            var datos = $("#formulario").serialize();
+            var promise = $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/inventario/guardar/'); ?>",
+                async: false,
+                // you can use an object here
+                data: datos
+            });
+            promise.done(function(data) {
+                $("html").css('cursor', 'auto');
+                if (data["estado"]) {
+                    var imagen = '/img/fail.png';
+                    var texto = "Ha ocurrido un error en la inserción en la bbdd: <br/>" + data["respuesta"];
+                }
+                else
+                {
+                    var imagen = '/img/ok.png';
+                    var texto = "Se ha añadido " + dato + ' en el Inventario';
+                    if (origen === "guardar") {
+                        resetearFormulario("Nuevo Material", formulario, formvalidator);
+                        oTable.fnStandingRedraw();
+                        showList();
+                    }
+                    else
+                    {
+                        if ($("#codigo").val())
+                            obtenerCodigo();
+                        $("#titulo").html("<i class='halflings-icon edit'></i><span class='break'></span>Nuevo Material");
+                        $("#id_inventario").val("");
+                        oTable.fnStandingRedraw();
+                    }
+                }
+                $.gritter.add({
+                    // (string | mandatory) the heading of the notification
+                    title: 'Inventario ',
+                    // (string | mandatory) the text inside the notification
+                    text: texto,
+                    image: imagen
+
+                });
+
+            });
+            promise.fail(function() {
+                $.gritter.add({
+                    // (string | mandatory) the heading of the notification
+                    title: '¡Error al guardar el registro!',
+                    // (string | mandatory) the text inside the notification
+                    text: 'No se ha guardado ' + dato + ' en el Inventario',
+                    image: '/img/block.png'
+                });
+            });
+        }
+        $('#fecha_adquisicion').mouseenter(function() {
+            $('#fecha_adquisicion').datepicker({
+                format: 'dd-mm-yyyy',
+                weekStart: 1,
+                language: "es",
+                todayHighlight: true,
+                autoclose: true
+            });
+        });
+        $('#fecha_adquisicion').change(function() {
+            $('#fecha_adquisicion').datepicker('remove');
+        });
+
+
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?> 
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+
+    <!-- start: Content -->
+    <!-- start: Content -->
+    <div id="content" class="span11">
+        <div class="row-fluid">
+            <h1>Inventario</h1>
+            <div id="herramientas"></div>
+        </div>
+        <div id="divadd" class="row-fluid" style="display:none">
+            <div class="box span12">
+                <div class="box-header" data-original-title>
+                    <h2 id="titulo"><i class="halflings-icon edit"></i><span class="break"></span>Nuevo Material</h2>
+                    <div class="box-icon">
+                        <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                        <a href="#" id="minnuevo" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                        <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                    </div>
+                </div>
+                <div class="box-content">
+                    <form method="<?php echo $this->formulario->getMethod() ?>" action="<?php echo $this->formulario->getAction() ?>" name="<?php echo $this->formulario->getName() ?>" id="<?php echo $this->formulario->getName() ?>">
+                        <div class="row-fluid">
+                            <div class="span12">   
+                                <div class="row-fluid">   
+                                    <div class="span5">
+                                        <label for="proveedor">Modelo</label>
+                                        <?php echo $this->formulario->id_inventario->renderViewHelper(); ?>  
+                                        <?php echo $this->formulario->modelo->renderViewHelper(); ?>  
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Código</label>
+                                        <div class="input-append">
+                                            <?php echo $this->formulario->codigo->renderViewHelper(); ?>   
+                                            <button id="btncodigo" class="btn" type="button"><i class="icon-refresh"></i></button>
+                                        </div>
+                                    </div><!--/span-->
+                                    <div class="span3">
+                                        <label>Tipo</label>
+                                        <?php echo $this->formulario->tipos_id_tipo->renderViewHelper(); ?>    
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Estado</label>
+                                        <?php echo $this->formulario->estado->renderViewHelper(); ?>      
+                                    </div><!--/span-->
+                                </div><!--/row-->
+                                <div class="row-fluid">
+                                    <div class="span4">
+                                        <label>Proveedor</label>
+                                        <?php echo $this->formulario->proveedores_id_proveedor->renderViewHelper(); ?>    
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Fecha compra</label>
+                                        <?php echo $this->formulario->fecha_adquisicion->renderViewHelper(); ?>       
+                                    </div><!--/span-->
+                                    <div class="span3">
+                                        <label>Departamento</label>
+                                        <?php echo $this->formulario->departamentos_id_departamento->renderViewHelper(); ?> 
+                                    </div><!--/span-->
+                                    <div class="span2">
+                                        <label>Aula</label>
+                                        <?php echo $this->formulario->aulas_id_aula->renderViewHelper(); ?> 
+                                    </div><!--/span-->
+                                    <div class="span1">
+                                        <label>Puesto</label>
+                                        <?php echo $this->formulario->puesto->renderViewHelper(); ?> 
+                                    </div><!--/span-->
+                                </div><!--/row-->   
+                                <div class="row-fluid">
+                                    <div class="span12">
+                                        <label>Observaciones</label>
+                                        <?php echo $this->formulario->obs->renderViewHelper(); ?>    
+                                    </div><!--/span-->
+                                </div><!--/row-->
+
+                                <div class="form-actions">               
+                                    <?php echo $this->formulario->guardar->renderViewHelper(); ?> 
+                                    <?php echo $this->formulario->cancelar->renderViewHelper(); ?> 
+                                    <?php echo $this->formulario->clonar->renderViewHelper(); ?> 
+                                </div><!--/form-actions-->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div><!--/span-->
+        </div><!--/row-->
+        <div id="divlist" class="row-fluid">		
+            <div class="box span12">
+                <div class="box-header" data-original-title>
+                    <h2><i class="fa-icon-hdd"></i><span class="break"></span>Listado de Material</h2>
+                    <div class="box-icon">
+                        <a href="#" id="print-pdf" class="hidden-phone hidden-tablet"><i class="halflings-icon print"></i></a>
+                        <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                        <a href="#" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                        <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                    </div>
+                </div>
+                <div class="box-content">
+                    <table id="tabla" class="table table-striped table-bordered bootstrap-datatable datatable">
+                        <thead>
+                            <tr>                            
+                                <th>
+                        <div class="input-append">
+                            <input type="text" id="smodelo"  placeholder="Filtrar modelo" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+                        </th>                                
+                        <th>
+                        <div class="input-append" style="display:none;">
+                            <input type="text" id="scodigo"  placeholder="Filtrar código" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+                        </th>
+                        <th>
+                        <div class="input-append" style="display:none;">
+                            <input type="text" id="sfechacompra"  placeholder="Filtrar fecha" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>
+                        </th>  
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="saula"  placeholder="Filtrar aula" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div>       
+                        </th>
+                        <th>
+                        <div class="input-append" style="display:none;">
+                            <input type="text" id="saula"  placeholder="Filtrar puesto" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div> 
+
+                        </th>                                  
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="stipo"  placeholder="Filtrar tipo" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div> 
+                        </th>
+                        <th>
+                        <div class="input-append">
+                            <input type="text" id="sproveedor"  placeholder="Filtrar proveedor" class="search_init" />
+                            <span class="sborrar add-on"><i class="icon-remove"></i></span>
+                        </div> 
+                        </th>
+                        <th>
+                            <select id="sestado"   class="search_init" >
+                                <option value="" selected>Filtrar estado</option>
+                                <option value="En uso">En uso</option>
+                                <option value="Baja">Baja</option>
+                                <option value="Averiado">Averiado</option>
+                            </select>
+                        </th>                                
+                        <th><!--departamento--></th>
+                        <th><!--acciones--></th>  
+                        <th><!--id_inventario--> </th>                                  
+                        <th><!--id_aula--></th>
+                        <th><!--id_tipo--></th>
+                        <th><!--id_proveedor--></th>  
+                        <th><!--obs--></th>
+                        <th><!--id_departamento--></th>
+                        </tr>
+                        <tr>
+                            <th title="Especificaciones del material">Modelo</th>
+                            <th title="Código del material según el centro">Código</th>
+                            <th title="Fecha de compra del material">Fecha</th>
+
+                            <th title="Lugar de ubicación del material">Aula</th>
+                            <th title="Puesto de ubicación del material">Puesto</th>
+
+                            <th title="Tipo de material">Tipo</th>
+
+                            <th title="Proveedor del material">Proveedor</th>
+                            <th title="Estado del material: en uso, averiado...">Estado</th>
+                            <th>Departamento</th>
+                            <th title="Ver o modificar datos del material">Acciones</th>
+                            <th>Id Inventario</th>
+                            <th>Aulas_id_aula</th>
+                            <th>tipos_id_tipo</th>
+                            <th>id_proveedor</th>
+                            <th>Obs</th>
+                            <th>id_departamento</th>
+                        </tr>
+                        </thead>  
+                        <tbody></tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>            
+                </div>
+            </div><!--/span-->
+
+        </div><!--/row-->
+        <!-- Formulario de borrado -->
+        <div class="modal hide" id="deleteModal">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">×</button>
+                <h3>Borrar Material</h3>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn" data-dismiss="modal">Cancelar</a>
+                <a id="borrar" href="#" class="btn btn-primary">Borrar</a>
+            </div>
+        </div>
+        <!-- end: Content -->
+    </div><!--/#content.span11-->
+</div><!--/fluid-row-->

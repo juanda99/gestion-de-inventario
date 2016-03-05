@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Gestión de Inventario</title>
+        <meta name="description" content="Gestión de inventario: incidencias, mantenimientos y compras para Centros Educativos">
+        <meta name="author" content="Juan Daniel Burró Aláez">
+        <meta name="keyword" content="gestor incidencias averías equipos informáticos cámaras centro educativo">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link id="base-style-responsive" href="<?php echo $this->serverUrl() . '/css/datepicker.css' ?>" rel="stylesheet">
+        <link id="bootstrap-style" href="<?php echo $this->serverUrl() . '/css/bootstrap.min.css' ?>" rel="stylesheet">
+        <link href="<?php echo $this->serverUrl() . '/css/bootstrap-responsive.min.css' ?>" rel="stylesheet">
+        <link id="base-style" href="<?php echo $this->serverUrl() . '/css/style.min.css' ?>" rel="stylesheet">
+        <link id="base-style-responsive" href="<?php echo $this->serverUrl() . '/css/style-responsive.min.css' ?>" rel="stylesheet">
+        <link id="base-style-responsive" href="<?php echo $this->serverUrl() . '/css/juanda.css' ?>" rel="stylesheet">
+        <link id="base-style-responsive" href="<?php echo $this->serverUrl() . '/css/dataTables.bootstrap.css' ?>" rel="stylesheet">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+        <script src="<?php echo $this->serverUrl() . '/js/jquery-1.9.1.min.js' ?>"></script>
+        <link rel="shortcut icon" href="img/favicon.ico">
+
+        <script type="text/javascript">
+            var id_departamento;
+            <?php if ($this->snombre) { echo "id_departamento = ". $this->sid_departamento  ?>;
+            <?php }?>
+            $(document).ready(function() {
+                $("#lstDepartamentos").on('click', ".lstDepartamento", function(e) {
+                    e.preventDefault();
+                    departamento = $(this).text();
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        url: "<?php echo $this->baseUrl('/usuarios/login/'); ?>",
+                        data: {"departamento": departamento},
+                        success: function(data) {
+                            if (data["estado"]) {
+                                var imagen = '/img/fail.png';
+                                var texto = "Ha ocurrido al cambiar de departamento: " + data["respuesta"];
+                                $.gritter.add({
+                                    // (string | mandatory) the heading of the notification
+                                    title: 'Cambio departamento ',
+                                    // (string | mandatory) the text inside the notification
+                                    text: texto,
+                                    image: imagen
+                                });
+                            }
+                            else {
+                                $("#dptoactual").text(departamento);
+                                // location.reload();
+                                if (typeof oTable !== 'undefined') {
+                                    id_departamento = data["id_departamento"];
+                                    oTable.fnStandingRedraw();
+                                }
+                            }
+                        }
+                    });
+                });
+
+            });
+        </script>
+    </head>
+    <body>
+        <div class="navbar">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".top-nav.nav-collapse,.sidebar-nav.nav-collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="/"><span>app-name</span></a>
+                    <?php if ($this->snombre){ ?>
+                    <div class="nav-no-collapse header-nav">
+                        <ul class="nav pull-right">
+                            <!-- start: User Dropdown -->
+                            <li class="dropdown">
+                                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                                    <i class="halflings-icon white home"></i> <span id="dptoactual"><?php echo $this->sdepartamento ?></span>
+                                    <?php if ($this->sperfil > "2") { ?><span class="caret"></span> <?php } ?>
+                                </a>
+                                <?php if ($this->sperfil > "2") { ?>
+                                    <ul class="dropdown-menu" id="lstDepartamentos">
+                                        <?php foreach ($this->sdepartamentos as $departamento) {
+                                            ?>
+                                            <li class="lstDepartamento"><a href="#"><i></i> <?php echo $departamento ?></a></li>
+                                        <?php } ?>
+                                    </ul>
+                                <?php } ?>
+                            </li>
+                            <li class="dropdown">
+                                <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                                    <i class="halflings-icon white user"></i> <?php echo $this->snombre; ?>
+                                    <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#"><i class="halflings-icon white user"></i> Perfil</a></li>
+                                    <li><a href="/usuarios/logout"><i class="halflings-icon white off"></i> Cerrar sesión</a></li>
+                                </ul>
+                            </li>
+                            <!-- end: User Dropdown -->
+                        </ul>
+                    </div>
+                    <?php }?>
+                    <!-- end: Header Menu -->
+                </div>
+            </div>
+        </div>
+        <!-- start: Header -->
+        <div class="container-fluid">
+            <?php echo $this->layout()->content; ?>
+            <div class="clearfix"></div>
+            <footer>
+                <p>
+                    <span style="text-align:right;float:left">Creado por: <a href="https://plus.google.com/+JuanDanielBurr%C3%B3Al%C3%A1ez">juanda</a></span>
+                </p>
+            </footer>
+        </div><!--/.fluid-container-->
+        <!-- start: JavaScript-->
+        <script src="<?php echo $this->serverUrl() . '/js/jquery.dataTables.min.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/ZeroClipboard.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/TableTools.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/dataTables.bootstrap.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/bootstrap.min.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/bootstrap-datepicker.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/jquery.gritter.min.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/customjuanda2.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/jquery.validate.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/additional-methods.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/localization/messages_es.js' ?>"></script>
+        <script src="<?php echo $this->serverUrl() . '/js/localization/bootstrap-datepicker.es.js' ?>"></script>
+        <!-- end: JavaScript-->
+    </body>
+</html>

@@ -1,0 +1,289 @@
+<script type="text/javascript">
+    $(document).ready(function() {
+
+ 
+        /*******************************************************************/
+        /* EVENTOS DE LA PÁGINA                                            */
+        /*******************************************************************/
+        $.extend($.gritter.options, {
+            /*class_name: 'gritter-light',*/
+            position: 'bottom-right', // possibilities: bottom-left, bottom-right, top-left, top-right
+            fade_in_speed: 100, // how fast notifications fade in (string or int)
+            fade_out_speed: 100, // how fast the notices fade out
+            time: 3000 // hang on the screen for...
+        });
+        $("#tipo").change(function() {
+            if ($("#causa").val() === "") {
+                
+                $("#causa").val($("#tipo option:selected").text());
+            }
+
+            if ($("#tipo").val() === "Reasignacion") {
+                $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: "<?php echo $this->baseUrl('/departamentos/getprofesores/'); ?>",
+                    async: false,
+                    // you can use an object here
+                    data: {'id_departamento': <?php echo $this->id_departamento ?>},
+                    //includes the response status (e.g. 404 not found) and an error message
+                    error: function(xhr, status, error) {
+                        $.gritter.add({
+                            // (string | mandatory) the heading of the notification
+                            title: '¡Error al obtener los profesores del departamento!',
+                            // (string | mandatory) the text inside the notification
+                            text: 'No se han podido obtener los profesores del departamento ',
+                            image: '/img/block.png'
+                        });
+                    },
+                    success: function(data) {
+                        $("html").css('cursor', 'auto');
+                        if (data["estado"]) {
+                            var imagen = '/img/fail.png';
+                            var texto = "Ha ocurrido un error en la consulta a la bbdd: <br/>" + data["respuesta"];
+                            $.gritter.add({
+                                // (string | mandatory) the heading of the notification
+                                title: 'Alta Incidencia ',
+                                // (string | mandatory) the text inside the notification
+                                text: texto,
+                                image: imagen
+
+                            });
+                        }
+                        else {
+                            $("#usuarios_id_usuario").css("display", "inline");
+                            $("#lblreasignar").css("visibility", "visible");
+                            $("#usuarios_id_usuario").empty();
+                            /*rellenamos el combo con los profesores del departamento:*/
+                            $.each(data, function(val, text) {
+                                $("#usuarios_id_usuario").append($('<option></option>').val(val).html(text));
+                            });
+                        }
+                    },
+                    complete: {
+                    }
+                });
+            }
+            else {
+                $("#usuarios_id_usuario").css("display", "none");
+                $("#lblreasignar").css("visibility", "hidden");
+                $("#usuarios_id_usuario").empty();
+            }
+        });
+
+        $("#guardar").click(function(e) {
+
+            $("html").css('cursor', 'wait');
+            var datos = $("#formulario").serialize();
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: "<?php echo $this->baseUrl('/incidenciasfungibles/guardardet/'); ?>",
+                async: false,
+                // you can use an object here
+                data: datos + "&id_aula=<?php echo $this->id_aula; ?>",
+                //includes the response status (e.g. 404 not found) and an error message
+                error: function(xhr, status, error) {
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: '¡Error al guardar el registro!',
+                        // (string | mandatory) the text inside the notification
+                        text: 'No se ha guardado el registro de la incidencia',
+                        image: '/img/block.png'
+                    });
+                    e.preventDefault();
+                },
+                success: function(data) {
+                    $("html").css('cursor', 'auto');
+                    if (data["estado"]) {
+                        var imagen = '/img/fail.png';
+                        var texto = "Ha ocurrido un error en la inserción en la bbdd: <br/>" + data["respuesta"];
+                        e.preventDefault();
+                    }
+                    else
+                    {
+                        //var imagen = '/img/ok.png';
+                        //var texto = "Se ha añadido el registro en la incidencia";
+                        window.location.href = '<?php echo $this->baseUrl('/incidenciasfungibles/index/insertada/ok'); ?>';
+                    }
+                    $.gritter.add({
+                        // (string | mandatory) the heading of the notification
+                        title: 'Incidencias',
+                        // (string | mandatory) the text inside the notification
+                        text: texto,
+                        image: imagen
+                    });
+                    $("#id_usuarios").empty();
+                },
+                complete: {
+                }
+            });
+        });
+        $("#cancelar").click(function(e) {
+            window.location.href = '<?php echo $this->baseUrl('/incidenciasfungibles/'); ?>';
+        });
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+    <?php echo $this->partial('menu.php'); ?> 
+    <noscript>
+    <div class="alert alert-block span11">
+        <h4 class="alert-heading">Aviso!</h4>
+        <p>Necesitas <a href="http://en.wikipedia.org/wiki/JavaScript" target="_blank">JavaScript</a> para poder visualizar correctamente esta página.</p>
+    </div>
+    </noscript>
+    <?php
+    /* elegimos los colores para la incidencia */
+    if ($this->incidencia->prioridad == "Alta"){
+        $importancia = "important";
+    }else if ($this->incidencia->prioridad == "Media"){
+        $importancia = "warning";
+    }else{
+        $importancia = "success";
+
+    /* Para la solución siempre lo pondremos en verde */
+    /*   if ($incidencia_det->tipo=="Cierre") $color="low"; */
+    }?>
+
+    <!-- start: Content -->
+    <div id="content" class="span11">
+
+        <div class="row-fluid">
+            <h1>Gestión de Incidencia</h1>
+        </div>
+        <div class="row-fluid">
+
+            <div class="box span12">
+                <div class="box-header" data-original-title>
+                    <h2><i class="fa-icon-hdd"></i><span class="break"></span>Historial Incidencia</h2>
+                    <div class="box-icon">
+                        <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                        <a href="#" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                        <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                    </div>
+                </div>
+                <div class="box-content">
+
+                    <div class="row-fluid">
+
+                        <p><span class="label label-<?php echo $importancia ?>">Prioridad <?php echo $this->incidencia->prioridad ?></span>
+                            <span class="label label-reverse"><?php echo $this->aula; ?></span>
+                    </div>
+                    <div class="row-fluid">
+                        <?php foreach ($this->incidencias_det as $incidencia_det) {
+                            ?>
+
+                            <div class="row-fluid">
+                                <?php
+                                /* elegimos los colores para la incidencia */
+                                if ($incidencia_det->tipo == "Apertura"){
+                                    $color = "high";
+
+                                } else if ($incidencia_det->tipo == "Cierre"){
+                                    $color = "low";
+                                } else {
+                                    $color = "medium";
+                                } ?>
+
+                                <div class="priority <?php echo $color ?>"><span><?php echo $incidencia_det->tipo ?> Incidencia </span></div>
+                                <div class="task <?php echo $color ?>">
+                                    <div class="desc">
+                                        <div class="title"><?php echo nl2br($incidencia_det->causa); ?>&nbsp;</div>
+                                        <div><?php echo nl2br($incidencia_det->descripcion_detalle); ?>&nbsp;</div>
+                                    </div>
+                                    <div class="time">
+                                        <div class="date"><?php
+                                            $date = date_create($incidencia_det->fecha);
+                                            echo date_format($date, 'd/m/Y');
+                                            ?></div>
+                                        <div><?php echo $incidencia_det->nombrecompleto ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php } ?>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <?php if ($incidencia_det->tipo != "Cierre") { ?>
+
+            <div class="row-fluid">
+
+                <div class="box span12">
+                    <div class="box-header" data-original-title>
+                        <h2><i class="fa-icon-hdd"></i><span class="break"></span>Resolución Incidencia</h2>
+                        <div class="box-icon">
+                            <a href="#" id="toggle-fullscreen" class="hidden-phone hidden-tablet"><i class="halflings-icon fullscreen"></i></a>
+                            <a href="#" class="btn-minimize"><i class="halflings-icon chevron-up"></i></a>
+                            <a href="#" class="btn-close"><i class="halflings-icon remove"></i></a>
+                        </div>
+                    </div>
+
+
+                    <div class="box-content">
+
+                        <div class="row-fluid">
+                            <!--Ahora si la incidencia es con el mismo id de usuario, deberíamos mostrar el formulario-->
+
+                            <?php if ($this->id_usuario == $incidencia_det->usuarios_id_usuario || $this->usuario_valido == true) { ?>
+                                <form method="<?php echo $this->formulario->getMethod() ?>" action="<?php echo $this->baseUrl('/incidenciasfungibles/index/insertada/ok'); ?>" name="<?php echo $this->formulario->getName() ?>" id="<?php echo $this->formulario->getName() ?>">
+                                    <div class="row-fluid">
+                                        <div class="span12">   
+                                            <div class="row-fluid">   
+                                                <div class="span12">
+                                                    <label>Causa/Solución</label>
+                                                    <?php echo $this->formulario->incidencias_id_incidencia->renderViewHelper(); ?> 
+                                                    <?php echo $this->formulario->fecha->renderViewHelper(); ?> 
+                                                    <?php echo $this->formulario->causa->renderViewHelper(); ?>  
+                                                </div><!--/span-->
+                                            </div><!--/row-->
+                                            <div class="row-fluid">   
+                                                <div class="span12">
+                                                    <label>Descripción</label>
+                                                    <?php echo $this->formulario->descripcion_detalle->renderViewHelper(); ?>  
+                                                </div><!--/span-->
+                                            </div><!--/row-->
+                                            <div class="row-fluid">   
+                                                <div class="span4">
+                                                    <label>Acción a tomar</label>
+                                                    <?php echo $this->formulario->tipo->renderViewHelper(); ?>
+                                                </div><!--/span-->
+                                                <div class="span4">
+                                                    <label id="lblreasignar" style="visibility:hidden;">Reasignar a:</label> 
+                                                    <?php echo $this->formulario->usuarios_id_usuario->renderViewHelper(); ?>
+                                                </div><!--/span-->
+                                            </div>
+                                            <div class="form-actions">               
+                                                <?php echo $this->formulario->guardar->renderViewHelper(); ?> 
+                                                <?php echo $this->formulario->cancelar->renderViewHelper(); ?> 
+                                            </div><!--/form-actions-->
+                                        </div>
+                                    </div>
+                                </form>
+                                <!--Cargamos los valores por defecto del formulario-->
+                                <script type="text/javascript">
+                                    $("#incidencias_id_incidencia").val("<?php echo $incidencia_det->incidencias_id_incidencia ?>");
+                                </script>
+                            <?php } else { ?>
+                                <p>No estás autorizado para solucionar la incidencia</p>
+
+
+                            </div>
+                        </div>
+                    <?php } ?>
+                </div>
+            </div>
+        <?php } ?>
+
+
+
+
+
+
+
+
+
+    </div><!--/#content.span11-->
+</div><!--/fluid-row-->

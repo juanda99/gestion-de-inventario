@@ -1,0 +1,80 @@
+<script type="text/javascript">
+    $(document).ready(function(){
+        /*******************************************************************/
+        /* Validación formulario                                           */
+        /*******************************************************************/
+        var formvalidator = $("#formulario").validate({
+            /*bug hacía el validate con la fecha "antigua", antes de la selección*/
+            
+            rules:{
+                email: { 
+                    required: true,
+                    email: true
+                }
+            },
+            messages: {
+                email: {
+                    required: "Debes rellenar el usuario",
+                    email: "El usuario debe ser una dirección de email válida"
+                }
+            }
+        });
+        $("#entrar").click(function(e){
+            $("html").css('cursor','wait');
+            resultado = $("#formulario").validate().form();
+            if (!resultado) {
+                $("html").css('cursor','auto');
+                e.preventDefault();
+            }
+        });
+        $("#activacion").click(function(e){
+            $("html").css('cursor','wait');
+            resultado = $("#email").valid();
+            if (!resultado) {
+                $("html").css('cursor','auto');
+                e.preventDefault();
+                exit;
+            }
+            /*redirigimos:*/
+            window.location.href = "http://<?php echo $this->enlace;?>/email/" + $("#email").val() ;
+        });
+    }); /*Fin de document.ready*/
+</script>
+<div class="row-fluid">
+
+    <div class="row-fluid">
+        <div class="login-box">
+
+            <h2 style="margin-top:40px;">Entrar a la aplicación <br/><span style="color:red;" ><?php echo $this->errorMessage ?></span></h2>
+            <form id="formulario" class="form-horizontal" action="" method="post">
+                <fieldset>
+
+                    <div class="input-prepend" title="Usuario">
+                        <span class="add-on"><i class="halflings-icon user"></i></span>
+                        <input class="input-large span10" name="email" id="email" type="text" placeholder="escribe tu email"/>
+                    </div>
+                    <div class="clearfix"></div>
+                </fieldset>
+
+                <fieldset>
+                    <div class="input-prepend" title="Contraseña">
+                        <span class="add-on"><i class="halflings-icon lock"></i></span>
+                        <input class="input-large span10" name="password" id="password" type="password" placeholder="escribe tu contraseña"/>
+                    </div>
+                    <div class="clearfix"></div>
+                </fieldset>
+
+                <div class="button-login">	
+                    <button id="entrar" type="submit" class="btn btn-primary">Entrar</button>
+                </div>
+                <div class="clearfix"></div>
+            </form>
+            <hr>
+            <h3>¿Contraseña olvidada? ¿Usuario sin activar?</h3>
+            <p>
+                Sin problemas, rellena el usuario y pulsa <a id="activacion" href="#">aquí</a> para activar tu cuenta.
+            </p>	
+        </div><!--/span-->
+    </div><!--/row-->
+
+</div><!--/fluid-row-->

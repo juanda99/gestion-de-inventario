@@ -1,0 +1,32 @@
+[production]
+phpSettings.display_startup_errors = 0
+phpSettings.display_errors = 0
+autoloaderNamespaces.Myplugins = "Myplugins_"
+resources.frontController.plugins[] = "Myplugins_Layouts"
+includePaths.library = APPLICATION_PATH "/../library"
+bootstrap.path = APPLICATION_PATH "/Bootstrap.php"
+bootstrap.class = "Bootstrap"
+appnamespace = "Application"
+resources.frontController.controllerDirectory = APPLICATION_PATH "/controllers"
+resources.frontController.params.displayExceptions = 0
+resources.db.adapter="Pdo_Mysql"
+resources.db.params.host="localhost"
+resources.db.params.username="usuariobbdd"
+resources.db.params.password="contraseñabbdd"
+resources.db.params.dbname="basededatos"
+resources.db.params.charset = utf8
+autoloaderNamespaces.Twitter = "Twitter_"
+autoloaderNamespaces.Myclasses = "Myclasses_"
+
+resources.layout.layoutPath = APPLICATION_PATH "/layouts/scripts/"
+[staging : production]
+
+[testing : production]
+phpSettings.display_startup_errors = 0
+phpSettings.display_errors = 0
+
+[development : production]
+phpSettings.display_startup_errors = 0
+phpSettings.display_errors = 0
+resources.frontController.params.displayExceptions = 0
+
