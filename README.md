@@ -3,7 +3,9 @@ Gestión de inventario para centros educativos. Gestor de incidencias para aver�
 
 ## Instalación
 ### Configuración previa
+- Sistema operativo Linux
 - Se tiene que copiar el repositorio en el DOCUMENT_ROOT que vaya a tener la aplicación.
+- Base de datos mysql y servidor web con módulo php
 - Crear certificados SSL
 - Hay que configurar el servidor web, por ejemplo Apache:
 
@@ -93,3 +95,7 @@ Usage: ./install.sh dbname dbuser dbpass
 ```
 - El usuario inicial de acceso es *user@user.com* y la contraseña *juanda*
 
+## Tecnologías
+- php en servidor (Zend Framework v1)
+- jQuery y CSS Bootstrap v2 en cliente
+- Base de Datos MySql
