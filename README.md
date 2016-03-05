@@ -6,6 +6,7 @@ Gestión de inventario para centros educativos. Gestor de incidencias para aver�
 - Sistema operativo Linux
 - Base de datos mysql 
 - Servidor web con módulo php
+
 ### Configuración previa
 - Se tiene que copiar el repositorio en el DOCUMENT_ROOT que vaya a tener la aplicación.
 - Crear certificados SSL
