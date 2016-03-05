@@ -81,6 +81,9 @@ DBADMIN_PASSWORD="password"
 - *SMTP_SERVER*, *SMTP_USER* y *SMTP_PASSWORD* son los parámetros necesarios para el envío del correo electrónico. Es necesario su funcionamiento para poder activar usuarios.
 - *DBADMIN* y *DBADMIN_PASSWORD* se utilizan para poder crear la base de datos.
 
+### Cambio de logo
+- Coloca la imagen de tu centro en la pantalla principal, modificando el fichero */public/img/logo.jpg*
+- 
 ### Instalación:
 - Ejecutaremos el siguiente script, con el nombre de la bbdd, usuario y contraseña que elijamos
 ```
