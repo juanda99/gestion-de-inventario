@@ -84,3 +84,12 @@ Usage: ./install.sh dbname dbuser dbpass
 ```
 
 - Una vez instalado es recomendable borrar la carpeta install
+
+## Acceso
+- Mediante la url https://www.gestioninventario.com o la que se haya configurado.
+- Puede ser necesario modificar el fichero /etc/hosts y poner una entrada del tipo:
+```
+127.0.0.1       gestioninventario.com    www.gestioninventario.com
+```
+- El usuario inicial de acceso es *user@user.com* y la contraseña *juanda*
+
